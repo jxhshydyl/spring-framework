@@ -33,6 +33,7 @@ public class DefaultSerializer implements Serializer<Object> {
 
 	/**
 	 * Writes the source object to an output stream using Java serialization.
+	 * 使用java序列化将源对象写入输出流
 	 * The source object must implement {@link Serializable}.
 	 * @see ObjectOutputStream#writeObject(Object)
 	 */
