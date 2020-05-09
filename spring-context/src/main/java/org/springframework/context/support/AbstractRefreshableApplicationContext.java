@@ -115,17 +115,30 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 	 * This implementation performs an actual refresh of this context's underlying
 	 * bean factory, shutting down the previous bean factory (if any) and
 	 * initializing a fresh bean factory for the next phase of the context's lifecycle.
+	 * 此实现执行此上下文的底层的实际刷新
+	 * bean工厂，关闭以前的bean工厂（如果有的话）和
+	 * 为上下文生命周期的下一阶段初始化一个新的bean工厂
 	 */
 	@Override
 	protected final void refreshBeanFactory() throws BeansException {
+		// 如果 ApplicationContext 中已经加载过 BeanFactory 了，销毁所有 Bean，关闭 BeanFactory
+		// 注意，应用中 BeanFactory 本来就是可以多个的，这里可不是说应用全局是否有 BeanFactory，而是当前
+		// ApplicationContext 是否有 BeanFactory
 		if (hasBeanFactory()) {
 			destroyBeans();
 			closeBeanFactory();
 		}
 		try {
+			// 初始化一个 DefaultListableBeanFactory
 			DefaultListableBeanFactory beanFactory = createBeanFactory();
+			// 用于 BeanFactory 的序列化
 			beanFactory.setSerializationId(getId());
+			// 下面这两个方法很重要
+			// 设置 BeanFactory 的两个配置属性：是否允许 Bean 覆盖、是否允许循环引用
 			customizeBeanFactory(beanFactory);
+			// 加载 Bean 到 BeanFactory 中
+			//这个方法将根据配置，加载各个 Bean，然后放到 BeanFactory 中。
+			//读取配置的操作在 XmlBeanDefinitionReader 中，其负责加载配置、解析。
 			loadBeanDefinitions(beanFactory);
 			synchronized (this.beanFactoryMonitor) {
 				this.beanFactory = beanFactory;
@@ -213,12 +226,21 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 	 * @see DefaultListableBeanFactory#setAllowCircularReferences
 	 * @see DefaultListableBeanFactory#setAllowRawInjectionDespiteWrapping
 	 * @see DefaultListableBeanFactory#setAllowEagerClassLoading
+	 * BeanDefinition 的覆盖问题可能会有开发者碰到这个坑，就是在配置文件中定义 bean 时使用了相同的 id 或 name，
+	 * 默认情况下，allowBeanDefinitionOverriding 属性为 null，如果在同一配置文件中重复了，会抛错，
+	 * 但是如果不是同一配置文件中，会发生覆盖。
+	 * 循环引用也很好理解：A 依赖 B，而 B 依赖 A。或 A 依赖 B，B 依赖 C，而 C 依赖 A。
+	 * 默认情况下，Spring 允许循环依赖，当然如果你在 A 的构造方法中依赖 B，在 B 的构造方法中依赖 A 是不行的。
+	 * 至于这两个属性怎么配置？我在附录中进行了介绍，尤其对于覆盖问题，很多人都希望禁止出现 Bean 覆盖，
+	 * 可是 Spring 默认是不同文件的时候可以覆盖的。
 	 */
 	protected void customizeBeanFactory(DefaultListableBeanFactory beanFactory) {
 		if (this.allowBeanDefinitionOverriding != null) {
+			// 是否允许 Bean 覆盖、
 			beanFactory.setAllowBeanDefinitionOverriding(this.allowBeanDefinitionOverriding);
 		}
 		if (this.allowCircularReferences != null) {
+			// 是否允许循环引用
 			beanFactory.setAllowCircularReferences(this.allowCircularReferences);
 		}
 	}
