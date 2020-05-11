@@ -418,6 +418,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		Object result = existingBean;
 		for (BeanPostProcessor processor : getBeanPostProcessors()) {
+			//DefaultAdvisorAutoProxyCreator 的继承结构中，postProcessAfterInitialization() 方法在其父类 AbstractAutoProxyCreator 这一层被覆写了
 			result = processor.postProcessAfterInitialization(result, beanName);
 			if (result == null) {
 				return result;
@@ -551,13 +552,21 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		// even when triggered by lifecycle interfaces like BeanFactoryAware.
 		// 下面这块代码是为了解决循环依赖的问题
 		/**
+		 *
+		 * Cache of singleton objects: bean name --> bean instance
+		 * 用于存放完全初始化好的 bean，从该缓存中取出的 bean 可以直接使用
+		 * private final Map<String, Object> singletonObjects = new ConcurrentHashMap<String, Object>(256);
+		 *
+		 *
 		 *  Cache of singleton factories: bean name
 		 *  单例工厂缓存：bean名称
+         *  存放 bean 工厂对象，用于解决循环依赖
 		 * this.singletonFactories.put(beanName, singletonFactory);
-		 * private final Map<String, Object> singletonObjects = new ConcurrentHashMap<String, Object>(256);
+		 * private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<String, ObjectFactory<?>>(16);
 		 *
 		 * Cache of early singleton objects: bean name
 		 * 早期单例对象的缓存：bean名称
+         * 存放原始的 bean 对象（尚未填充属性），用于解决循环依赖
 		 * this.earlySingletonObjects.remove(beanName);
 		 * private final Map<String, Object> earlySingletonObjects = new HashMap<String, Object>(16);
 		 *
@@ -1682,6 +1691,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		Object wrappedBean = bean;
 		if (mbd == null || !mbd.isSynthetic()) {
+			// 1. 执行每一个 BeanPostProcessor 的 postProcessBeforeInitialization 方法
 			wrappedBean = applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
 		}
 
@@ -1697,6 +1707,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 		if (mbd == null || !mbd.isSynthetic()) {
 			// BeanPostProcessor 的 postProcessAfterInitialization 回调
+			// Spring AOP 会在 IOC 容器创建 bean 实例的最后对 bean 进行处理。其实就是在这一步进行代理增强。
 			wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
 		}
 		return wrappedBean;
