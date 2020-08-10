@@ -390,6 +390,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			this.earlyApplicationEvents.add(applicationEvent);
 		}
 		else {
+			//获取事件广播器、然后广播事件
 			getApplicationEventMulticaster().multicastEvent(applicationEvent, eventType);
 		}
 
@@ -554,7 +555,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				initMessageSource();
 
 				// Initialize event multicaster for this context.
-				// 初始化当前 ApplicationContext 的事件广播器
+				// 初始化当前 ApplicationContext 的事件广播器   监听器
 				initApplicationEventMulticaster();
 
 				// Initialize other special beans in specific context subclasses.
@@ -878,6 +879,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	/**
 	 * Add beans that implement ApplicationListener as listeners.
 	 * Doesn't affect other listeners, which can be added without being beans.
+	 * 从容器中获取所有ApplicationEventListener类型的组件，添加进事件广播器。
 	 */
 	protected void registerListeners() {
 		// Register statically specified listeners first.
